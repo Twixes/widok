@@ -5,7 +5,7 @@ import { Canvas, MeshProps } from '@react-three/fiber'
 import { useRef, useState } from 'react'
 import { Mesh } from 'three'
 
-type TwoDPosition = [number, number]
+type Vec2 = [number, number]
 
 const INITIAL_ROW_DISTANCE = 5
 const ROW_INTERVAL = 2
@@ -13,10 +13,10 @@ const PARALLEL_SEAT_COUNT_PER_ROW = [0, 2*3,2*3,2*3,2*3,2*3,2*3,2*3,2*3,2*3,1*3]
 const CONCENTRIC_SEAT_COUNT_PER_ROW = [4*3,4*5,4*6,8*3,8* 4,8* 5,8* 5,8*6,8*7,8*7,8*7]
 const SEAT_RADIUS = 0.5
 
-let seatPositions: TwoDPosition[] = [
+let seatPositions: Vec2[] = [
   ...CONCENTRIC_SEAT_COUNT_PER_ROW.flatMap((seatCount, rowIndex) => {
   const rowRadius = INITIAL_ROW_DISTANCE + rowIndex * ROW_INTERVAL
-  let rowSeatPositions: TwoDPosition[] = []
+  let rowSeatPositions: Vec2[] = []
   for (let i = 0; i < seatCount; i++) {
     const x = (rowRadius * Math.cos(Math.PI * i / (seatCount-1)));
     const y = (rowRadius * Math.sin(Math.PI * i /(seatCount-1)));
@@ -25,7 +25,7 @@ let seatPositions: TwoDPosition[] = [
   return rowSeatPositions
 }),  ...PARALLEL_SEAT_COUNT_PER_ROW.flatMap((seatCount, rowIndex) => {
   const rowRadius = INITIAL_ROW_DISTANCE + rowIndex * ROW_INTERVAL
-  let rowSeatPositions: TwoDPosition[] = []
+  let rowSeatPositions: Vec2[] = []
   for (let i = 0; i < seatCount; i++) {
     const x = i > 2 ? -rowRadius : rowRadius
     const y = (ROW_INTERVAL - SEAT_RADIUS) * -(i % 3 + 1)
@@ -34,25 +34,36 @@ let seatPositions: TwoDPosition[] = [
   return rowSeatPositions
 })]
 
-function Box(props: MeshProps) {
+function Box(props: MeshProps & {setHoverCoordinates: (coordinates: Vec2 | null) => void}): JSX.Element {
   const mesh = useRef<Mesh>()
 
-  const [hovered, setHover] = useState(false)
+  const [hover, setHover] = useState(false)
 
-  return (
+  return <>
     <mesh
       {...props}
       ref={mesh}
-      onPointerOver={(e) => setHover(true)}
-      onPointerOut={(e) => setHover(false)} rotation={[Math.PI/2, 0, 0]}>
+      onPointerOver={(e) => {
+        setHover(true)
+        props.setHoverCoordinates([e.clientX, e.clientY])
+      }}
+      onPointerMove={(e) => {
+        props.setHoverCoordinates([e.clientX, e.clientY])
+      }}
+      onPointerOut={() => {
+        setHover(false)
+        props.setHoverCoordinates(null)
+      }} rotation={[Math.PI/2, 0, 0]}>
       <cylinderGeometry args={[SEAT_RADIUS, SEAT_RADIUS, 0.5, 15]}/>
-      <meshStandardMaterial color={hovered ? 'hotpink' : 'orange'} />
+      <meshStandardMaterial color={hover ? 'hotpink' : 'orange'} />
     </mesh>
-  )
+  </>
 }
 
 const Home: NextPage = () => {
-  return (
+  const [hoverCoordinates, setHoverCoordinates] = useState<Vec2 | null>(null)
+  
+  return <>
     <div className={styles.container}>
       <main className={styles.main}>
         <h1 className={styles.title}>
@@ -62,7 +73,7 @@ const Home: NextPage = () => {
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} />
           {seatPositions.map(([x, y], i) =>
-          <Box key={i} position={[x, y, 0]} />)}
+          <Box key={i} position={[x, y, 0]} setHoverCoordinates={setHoverCoordinates} />)}
         </Canvas>
         <Head>
           <title>Create Next App</title>
@@ -71,7 +82,8 @@ const Home: NextPage = () => {
         </Head>
       </main>
     </div>
-  )
+  {hoverCoordinates && <div style={{position: 'absolute', left: 0, top: 0, transform: `translate(calc(${hoverCoordinates[0]}px - 100%), calc(${hoverCoordinates[1]}px - 100%))`, background: 'white', border: '3px solid black', padding: '0.5rem', pointerEvents: 'none'}}><b>Poseł</b></div>}
+  </>
 }
 
 export default Home
