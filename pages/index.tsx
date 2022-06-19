@@ -191,6 +191,9 @@ const Home: NextPage = () => {
                         <link rel="icon" href="/favicon.ico" />
                     </Head>
                 </main>
+                <h4>
+                    <a href="https://matloka.com">Michał Matłoka</a>
+                </h4>
             </div>
             {hoverCoordinates && hoverIndex !== null && (
                 <div
